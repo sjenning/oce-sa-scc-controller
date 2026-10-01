@@ -1,0 +1,32 @@
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: openclaw-enterprise
+priority: 20
+allowPrivilegeEscalation: false
+requiredDropCapabilities:
+  - ALL
+runAsUser:
+  type: MustRunAs
+  uid: 1000
+fsGroup:
+  type: MustRunAs
+  ranges:
+    - min: 1000
+      max: 1000
+supplementalGroups:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+seccompProfiles:
+  - runtime/default
+volumes:
+  - configMap
+  - csi
+  - downwardAPI
+  - emptyDir
+  - ephemeral
+  - image
+  - persistentVolumeClaim
+  - projected
+  - secret

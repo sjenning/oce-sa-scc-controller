@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oce-sa-scc-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oce-sa-scc-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: oce-sa-scc-controller
+    spec:
+      serviceAccountName: oce-sa-scc-controller
+      terminationGracePeriodSeconds: 15
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: controller
+          image: oce-sa-scc-controller
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: health
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            initialDelaySeconds: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 10
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            failureThreshold: 60
+            periodSeconds: 5
