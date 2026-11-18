@@ -1,4 +1,4 @@
-module oce-sa-scc-webhook
+module oce-sa-scc-controller
 
 go 1.25.0
 

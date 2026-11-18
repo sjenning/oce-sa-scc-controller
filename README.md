@@ -4,10 +4,10 @@ Automatically grants `openclaw-enterprise` SCC access to agent and gateway
 ServiceAccounts in namespaces created by OpenClaw Enterprise (OCE). Namespace
 names and ServiceAccount suffixes do not need to be configured ahead of time.
 
-This project uses a Kubernetes watch controller. It watches ServiceAccounts,
-namespaces, and RoleBindings, rather than registering an admission webhook. It
-needs no HTTPS certificate or admission configuration. A controller outage does
-not prevent ServiceAccount creation; reconciliation catches up after restart.
+This project uses a Kubernetes watch controller to watch ServiceAccounts,
+namespaces, and RoleBindings. It needs no HTTPS certificate or admission
+configuration. A controller outage does not prevent ServiceAccount creation;
+reconciliation catches up after restart.
 
 ## Matching OCE resources
 
@@ -45,8 +45,7 @@ pointing to another role are logged and retried without being overwritten.
 
 Reconciliation is asynchronous. A Pod admission attempt can fail before its
 binding exists. Deployment and Job controllers retry; callers creating Pods
-directly must retry. An admission webhook would be a different design if the
-binding must exist before ServiceAccount creation returns.
+directly must retry. ServiceAccount creation does not wait for the binding.
 
 ## Build and test
 

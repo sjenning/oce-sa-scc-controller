@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"oce-sa-scc-webhook/internal/controller"
+	"oce-sa-scc-controller/internal/controller"
 )
 
 func main() {
