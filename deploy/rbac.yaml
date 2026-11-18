@@ -41,4 +41,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: oce-sa-scc-controller
-    namespace: openclaw-system
+    namespace: oce

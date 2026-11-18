@@ -34,15 +34,32 @@ func fixtures(gateway bool) (*corev1.Namespace, *corev1.ServiceAccount) {
 	return ns, sa
 }
 
+func sameClusterGatewayFixtures() (*corev1.Namespace, *corev1.ServiceAccount) {
+	ns, sa := fixtures(false)
+	ns.Labels[GatewayNSKey] = sa.Labels[NamespaceKey]
+	sa.Name = "gateway-example"
+	return ns, sa
+}
+
 func TestEligible(t *testing.T) {
 	tests := []struct {
-		name    string
-		gateway bool
-		change  func(*corev1.Namespace, *corev1.ServiceAccount)
-		want    bool
+		name        string
+		gateway     bool
+		sameCluster bool
+		change      func(*corev1.Namespace, *corev1.ServiceAccount)
+		want        bool
 	}{
 		{name: "agent", want: true},
 		{name: "gateway", gateway: true, want: true},
+		{name: "same-cluster gateway", sameCluster: true, want: true},
+		{name: "same-cluster gateway missing membership", sameCluster: true, change: func(n *corev1.Namespace, _ *corev1.ServiceAccount) { delete(n.Labels, GatewayNSKey) }},
+		{name: "same-cluster gateway wrong membership", sameCluster: true, change: func(n *corev1.Namespace, _ *corev1.ServiceAccount) { n.Labels[GatewayNSKey] = "ns-other" }},
+		{name: "same-cluster gateway missing tenant identity", sameCluster: true, change: func(n *corev1.Namespace, _ *corev1.ServiceAccount) { delete(n.Labels, NamespaceKey) }},
+		{name: "same-cluster gateway wrong tenant identity", sameCluster: true, change: func(n *corev1.Namespace, _ *corev1.ServiceAccount) { n.Labels[NamespaceKey] = "ns-other" }},
+		{name: "same-cluster gateway unowned namespace", sameCluster: true, change: func(n *corev1.Namespace, _ *corev1.ServiceAccount) { delete(n.Labels, ManagedByKey) }},
+		{name: "same-cluster gateway unowned account", sameCluster: true, change: func(_ *corev1.Namespace, s *corev1.ServiceAccount) { delete(s.Labels, ManagedByKey) }},
+		{name: "same-cluster gateway unrelated account", sameCluster: true, change: func(_ *corev1.Namespace, s *corev1.ServiceAccount) { s.Name = "default" }},
+		{name: "same-cluster gateway wrong account identity", sameCluster: true, change: func(_ *corev1.Namespace, s *corev1.ServiceAccount) { s.Labels[NamespaceKey] = "ns-other" }},
 		{name: "namespace name alone", change: func(n *corev1.Namespace, _ *corev1.ServiceAccount) { n.Labels = nil }},
 		{name: "account name alone", change: func(_ *corev1.Namespace, s *corev1.ServiceAccount) { s.Labels = nil }},
 		{name: "wrong namespace manager", change: func(n *corev1.Namespace, _ *corev1.ServiceAccount) { n.Labels[ManagedByKey] = "another-app" }},
@@ -62,6 +79,9 @@ func TestEligible(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ns, sa := fixtures(tt.gateway)
+			if tt.sameCluster {
+				ns, sa = sameClusterGatewayFixtures()
+			}
 			if tt.change != nil {
 				tt.change(ns, sa)
 			}
@@ -283,7 +303,8 @@ func eventually(t *testing.T, condition func() bool) {
 }
 
 func TestWatchBackfillsRetriesAndRepairsDeletedBinding(t *testing.T) {
-	ns, sa := fixtures(false)
+	// A controller restart must backfill the previously skipped same-cluster Gateway.
+	ns, sa := sameClusterGatewayFixtures()
 	c, client := newTestController(t, ns, sa)
 	var creates atomic.Int32
 	client.PrependReactor("create", "rolebindings", func(clienttesting.Action) (bool, runtime.Object, error) {

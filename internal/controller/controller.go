@@ -41,8 +41,12 @@ func Eligible(ns *corev1.Namespace, sa *corev1.ServiceAccount) bool {
 		sa.Labels[ManagedByKey] != OCEManager || sa.Labels[AgentKey] == "" || sa.Labels[NamespaceKey] == "" {
 		return false
 	}
-	if strings.HasPrefix(sa.Name, "gateway-") && strings.HasPrefix(ns.Name, "oce-gateways-") {
-		return ns.Labels[GatewayNSKey] == sa.Labels[NamespaceKey]
+	if strings.HasPrefix(sa.Name, "gateway-") {
+		if ns.Labels[GatewayNSKey] != sa.Labels[NamespaceKey] {
+			return false
+		}
+		// Same-cluster Gateways share the tenant namespace; split-cluster Gateways do not.
+		return strings.HasPrefix(ns.Name, "oce-gateways-") || ns.Labels[NamespaceKey] == sa.Labels[NamespaceKey]
 	}
 	return strings.HasPrefix(sa.Name, "agent-") && !strings.HasPrefix(ns.Name, "oce-gateways-") &&
 		ns.Labels[NamespaceKey] == sa.Labels[NamespaceKey]

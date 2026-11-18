@@ -17,10 +17,10 @@ The matching rules come from the labels observed on the target OpenShift cluster
 | --- | --- |
 | Namespace | Name starts with `oce-`; `app.kubernetes.io/managed-by: openclaw-enterprise` |
 | Agent namespace | Nonempty `openclaw.dev/namespace`; name does not start with `oce-gateways-` |
-| Gateway namespace | Name starts with `oce-gateways-`; nonempty `openclaw.dev/gateway-namespace` |
+| Gateway namespace | Nonempty `openclaw.dev/gateway-namespace`; either a separate `oce-gateways-` namespace or the shared Agent namespace |
 | ServiceAccount | `app.kubernetes.io/managed-by: openclaw-enterprise`; nonempty `openclaw.dev/agent` and `openclaw.dev/namespace` |
 | Agent ServiceAccount | Name starts with `agent-`; its namespace identity label matches the agent namespace's identity label |
-| Gateway ServiceAccount | Name starts with `gateway-`; its namespace identity label matches the gateway namespace's identity label |
+| Gateway ServiceAccount | Name starts with `gateway-`; its namespace identity label matches `openclaw.dev/gateway-namespace`; in a shared Agent namespace, it also matches `openclaw.dev/namespace` |
 
 Matching names alone never grant access. `default`, `builder`, `deployer`, and
 unrelated ServiceAccounts are ignored. These labels are eligibility markers:
@@ -56,8 +56,9 @@ Kubernetes 1.35 API.
 ```sh
 make test
 make build
-make image IMAGE=quay.io/sjenning/oce:wehbook
-docker push quay.io/sjenning/oce:wehbook
+IMAGE="quay.io/sjenning/oce:scc-controller-$(date -u +%Y%m%dT%H%M%SZ)"
+make image IMAGE="$IMAGE"
+docker push "$IMAGE"
 ```
 
 The container runs without root, privilege escalation, or Linux capabilities,
@@ -66,10 +67,10 @@ OpenShift can assign a UID from the controller namespace's range.
 
 ## Deploy to OpenShift
 
-The controller deploys to `openclaw-system` by default. The namespace manifest
+The controller deploys to `oce` by default. The namespace manifest
 sets only its name, leaving existing namespace labels and policies intact.
 
-The image defaults to `quay.io/sjenning/oce:wehbook`. To use another image, set
+The controller image is published to `quay.io/sjenning/oce`. To use another image, set
 `images[0].newName` and `newTag` in `kustomization.yaml`. The deployed image is
 pinned with `images[0].digest`; update that digest after pushing a new image,
 or remove it to deploy by tag. The cluster must be able to pull the image;
@@ -82,8 +83,8 @@ SCCs, cluster RBAC, and a Deployment:
 ```sh
 oc kustomize .
 oc apply -k .
-oc rollout status deployment/oce-sa-scc-controller -n openclaw-system
-oc logs -n openclaw-system deployment/oce-sa-scc-controller -f
+oc rollout status deployment/oce-sa-scc-controller -n oce
+oc logs -n oce deployment/oce-sa-scc-controller -f
 ```
 
 The manifests include the exported `openclaw-enterprise` SCC and its SCC-use

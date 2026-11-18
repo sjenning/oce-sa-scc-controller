@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: openclaw-system
+namespace: oce
 resources:
   - openclaw-enterprise-scc.yaml
   - deploy/namespace.yaml
@@ -9,5 +9,5 @@ resources:
 images:
   - name: oce-sa-scc-controller
     newName: quay.io/sjenning/oce
-    newTag: wehbook
-    digest: sha256:9d24309578f9185717065dc641b60c03569afb6a126fe1e04b879f577703773a
+    newTag: scc-controller-36b87a0faa1f-dirty-20261117T182150Z-3ae20a
+    digest: sha256:c2b3d140352801146a25b990e63f3d7aca4bc414ebd444e5b0f1c2a1abaebfc4
